@@ -2,8 +2,24 @@ import re
 import requests
 import pandas as pd
 import time
+import os
 
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 from bs4 import BeautifulSoup
+
+desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+
+gauth = GoogleAuth()
+gauth.LoadCredentialsFile(desktop + '\\' + "mycreds.txt")
+if gauth.credentials is None:
+    gauth.LocalWebserverAuth()
+elif gauth.access_token_expired:
+    gauth.Refresh()
+else:
+    gauth.Authorize()
+gauth.SaveCredentialsFile(desktop + '\\' + "mycreds.txt")
+
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -48,16 +64,14 @@ def playerSeasonPerformance(player_name,id):
 
     return(player_season_performance)
 
-# pd.DataFrame
-
 if __name__ == '__main__':
+
+
     player_name = ['Christian Pulisic','Weston McKennie','Timothy Weah']
     player_id =['315779','332697','370846']
 
-    # player_name =['Christian Pulisic']
-    # player_id =['315779']
-
-    player_df = pd.DataFrame(columns = ['Name','Age','Club','Position','Appearances','Goals','Assists','Yellows','Second Yellows','Reds','Goal Contribution per 90','Total Minutes'])
+    player_df = pd.DataFrame(columns = ['Name','Age','Club','Position','Appearances','Goals','Assists','Yellows','Second Yellows','Reds','Total Minutes','Goal Contribution per 90'])
+    player_df.index.name = 'ID'
 
     #iterate through player name list and replace spaces with Hyphen?
     player_hyphen = [i.replace(' ','-') for i in player_name]
@@ -68,6 +82,18 @@ if __name__ == '__main__':
 
         player_list_comb = player_information + player_season_performance
         player_df.loc[i]=player_list_comb
-        time.sleep(5)
+        time.sleep(1)
 
 print(player_df)
+
+print(desktop)
+
+player_df_location = desktop + '\\' + 'USMNT Player Tracker.csv'
+player_df.to_csv(player_df_location)
+
+gauth.LocalWebserverAuth()
+drive = GoogleDrive(gauth)
+
+file1 = drive.CreateFile()
+file1.SetContentFile(player_df_location)
+file1.Upload()
